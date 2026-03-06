@@ -134,7 +134,10 @@ class DndViewModel(private val repository: DndRepository) : ViewModel() {
         weight: String = "",
         value: String = "",
         category: String = "",
-        type: String = ""
+        type: String = "",
+        damage: String? = null,
+        range: String? = null,
+        properties: String? = null
     ) {
         viewModelScope.launch {
             repository.createBaseItem(
@@ -147,7 +150,10 @@ class DndViewModel(private val repository: DndRepository) : ViewModel() {
                     weight = weight,
                     value = value,
                     category = category,
-                    type = type
+                    type = type,
+                    damage = damage,
+                    range = range,
+                    properties = properties
                 )
             )
         }
@@ -162,7 +168,10 @@ class DndViewModel(private val repository: DndRepository) : ViewModel() {
         weight: String = "",
         value: String = "",
         category: String = "",
-        type: String = ""
+        type: String = "",
+        damage: String? = null,
+        range: String? = null,
+        properties: String? = null
     ) {
         viewModelScope.launch {
             repository.updateBaseItem(
@@ -175,7 +184,10 @@ class DndViewModel(private val repository: DndRepository) : ViewModel() {
                     weight = weight,
                     value = value,
                     category = category,
-                    type = type
+                    type = type,
+                    damage = damage,
+                    range = range,
+                    properties = properties
                 )
             )
         }

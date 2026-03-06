@@ -9,6 +9,7 @@ import com.example.dndinventorymanager.data.entities.CustomItemEntity
 import com.example.dndinventorymanager.data.entities.InventoryItemEntity
 import com.example.dndinventorymanager.data.entities.ItemEntity
 import com.example.dndinventorymanager.data.network.DndApi
+import com.example.dndinventorymanager.data.network.EquipmentDetailResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -242,16 +243,29 @@ class DndRepository(
         }
     }
 
+    private fun parseRange(detail: EquipmentDetailResponse): String? {
+        return if (detail.throw_range != null) {
+            if (detail.throw_range.long != null) "${detail.throw_range.normal}/${detail.throw_range.long} ft. (Thrown)"
+            else "${detail.throw_range.normal} ft. (Thrown)"
+        } else if (detail.range != null) {
+            if (detail.range.long != null) "${detail.range.normal}/${detail.range.long} ft." 
+            else "${detail.range.normal} ft."
+        } else {
+            detail.category_range
+        }
+    }
+
     suspend fun syncSrdItemsFromApi() {
         withContext(Dispatchers.IO) {
-            // Fetch both regular equipment and magic items indices
             val equipmentDef = async { api.getEquipmentIndex() }
             val magicItemsDef = async { api.getMagicItemsIndex() }
             
             val equipmentList = try { equipmentDef.await().results } catch(e: Exception) { emptyList() }
             val magicItemsList = try { magicItemsDef.await().results } catch(e: Exception) { emptyList() }
             
-            // Sync regular equipment in larger chunks
+            val equipmentMap = mutableMapOf<String, ItemEntity>()
+
+            // First sync regular equipment
             equipmentList.chunked(100).forEach { chunk ->
                 val detailedItems = chunk.map { item ->
                     async {
@@ -260,11 +274,10 @@ class DndRepository(
                             val damageStr = detail.damage?.let { 
                                 "${it.damage_dice} ${it.damage_type?.name ?: ""}".trim() 
                             }
-                            val rangeStr = detail.range?.let {
-                                if (it.long != null) "${it.normal}/${it.long} ft." else "${it.normal} ft."
-                            } ?: detail.category_range
                             
-                            ItemEntity(
+                            val rangeStr = parseRange(detail)
+                            
+                            val entity = ItemEntity(
                                 id = detail.index,
                                 name = detail.name,
                                 rarity = detail.rarity?.name ?: "Common",
@@ -273,25 +286,52 @@ class DndRepository(
                                 weight = detail.weight?.let { "$it lb." } ?: "",
                                 value = detail.cost?.let { "${it.quantity} ${it.unit}" } ?: "",
                                 category = detail.equipment_category?.name ?: "",
-                                type = detail.weapon_category ?: "",
+                                type = detail.category_range ?: detail.weapon_category ?: "",
                                 damage = damageStr,
                                 range = rangeStr,
                                 properties = detail.properties?.joinToString(", ") { it.name }
                             )
+                            entity
                         } catch (e: Exception) {
                             null
                         }
                     }
                 }.awaitAll().filterNotNull()
+                detailedItems.forEach { equipmentMap[it.id] = it }
                 itemDao.insertAll(detailedItems)
             }
 
-            // Sync magic items in larger chunks
+            // Sync magic items, referencing the equipmentMap for base weapon properties
             magicItemsList.chunked(100).forEach { chunk ->
                 val detailedItems = chunk.map { item ->
                     async {
                         try {
                             val detail = api.getMagicItemDetail(item.index)
+                            
+                            var finalDamage = ""
+                            var finalRange = ""
+                            var finalType = ""
+                            var finalProperties = ""
+
+                            // Check description for base weapon reference
+                            val firstDesc = detail.desc?.firstOrNull() ?: ""
+                            if (detail.equipment_category?.name?.contains("weapon", ignoreCase = true) == true) {
+                                // Extract weapon name from description like "Weapon (javelin), uncommon"
+                                val weaponRegex = Regex("""Weapon\s*\(([^)]+)\)""", RegexOption.IGNORE_CASE)
+                                val match = weaponRegex.find(firstDesc)
+                                val baseWeaponName = match?.groupValues?.get(1)?.lowercase()?.replace(" ", "-")
+                                
+                                if (baseWeaponName != null) {
+                                    val baseWeapon = equipmentMap[baseWeaponName]
+                                    if (baseWeapon != null) {
+                                        finalDamage = baseWeapon.damage ?: ""
+                                        finalRange = baseWeapon.range ?: ""
+                                        finalType = baseWeapon.type
+                                        finalProperties = baseWeapon.properties ?: ""
+                                    }
+                                }
+                            }
+
                             ItemEntity(
                                 id = detail.index,
                                 name = detail.name,
@@ -299,12 +339,12 @@ class DndRepository(
                                 sourcebook = "SRD Magic",
                                 description = detail.desc?.joinToString("\n") ?: "Magic item.",
                                 weight = detail.weight?.let { "$it lb." } ?: "",
-                                value = "", // Magic items often don't have standard costs in the API
+                                value = "",
                                 category = detail.equipment_category?.name ?: "Magic Item",
-                                type = "",
-                                damage = null,
-                                range = null,
-                                properties = null
+                                type = finalType,
+                                damage = if (finalDamage.isNotEmpty()) finalDamage else null,
+                                range = if (finalRange.isNotEmpty()) finalRange else null,
+                                properties = if (finalProperties.isNotEmpty()) finalProperties else null
                             )
                         } catch (e: Exception) {
                             null

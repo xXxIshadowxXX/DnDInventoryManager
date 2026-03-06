@@ -50,6 +50,9 @@ fun AdminScreen(viewModel: DndViewModel) {
     var itemValue by remember { mutableStateOf("") }
     var itemCategory by remember { mutableStateOf("") }
     var itemType by remember { mutableStateOf("") }
+    var itemDamage by remember { mutableStateOf("") }
+    var itemRange by remember { mutableStateOf("") }
+    var itemProperties by remember { mutableStateOf("") }
 
     val filteredItems = remember(baseItems, searchQuery) {
         if (searchQuery.isBlank()) {
@@ -97,11 +100,6 @@ fun AdminScreen(viewModel: DndViewModel) {
             style = MaterialTheme.typography.headlineSmall,
             color = DnDGold,
             fontWeight = FontWeight.Bold
-        )
-        Text(
-            "Manage items & sync with official databases",
-            style = MaterialTheme.typography.bodyMedium,
-            color = DnDMutedText
         )
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -156,15 +154,15 @@ fun AdminScreen(viewModel: DndViewModel) {
                             DndTextInput(
                                 value = itemWeight,
                                 onValueChange = { itemWeight = it },
-                                label = "Weight (lb.)",
-                                placeholder = "0.0",
+                                label = "Weight",
+                                placeholder = "3 lb.",
                                 modifier = Modifier.weight(1f)
                             )
                             DndTextInput(
                                 value = itemValue,
                                 onValueChange = { itemValue = it },
-                                label = "Value (gp)",
-                                placeholder = "0",
+                                label = "Value",
+                                placeholder = "15 gp",
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -177,17 +175,44 @@ fun AdminScreen(viewModel: DndViewModel) {
                                 value = itemCategory,
                                 onValueChange = { itemCategory = it },
                                 label = "Category",
-                                placeholder = "Adventuring Gear",
+                                placeholder = "Weapon",
                                 modifier = Modifier.weight(1f)
                             )
                             DndTextInput(
                                 value = itemType,
                                 onValueChange = { itemType = it },
-                                label = "Type",
-                                placeholder = "Tool",
+                                label = "Type/Category Range",
+                                placeholder = "Simple Melee",
                                 modifier = Modifier.weight(1f)
                             )
                         }
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            DndTextInput(
+                                value = itemDamage,
+                                onValueChange = { itemDamage = it },
+                                label = "Damage",
+                                placeholder = "1d8 slashing",
+                                modifier = Modifier.weight(1f)
+                            )
+                            DndTextInput(
+                                value = itemRange,
+                                onValueChange = { itemRange = it },
+                                label = "Range",
+                                placeholder = "Melee",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        DndTextInput(
+                            value = itemProperties,
+                            onValueChange = { itemProperties = it },
+                            label = "Properties",
+                            placeholder = "Versatile (1d10), Thrown (20/60)"
+                        )
 
                         DndTextInput(
                             value = itemDescription,
@@ -211,10 +236,13 @@ fun AdminScreen(viewModel: DndViewModel) {
                                             rarity = itemRarity.trim(),
                                             sourcebook = itemSourcebook.trim(),
                                             description = itemDescription.trim(),
-                                            weight = if (itemWeight.isNotBlank()) "${itemWeight.trim()} lb." else "",
-                                            value = if (itemValue.isNotBlank()) "${itemValue.trim()} gp" else "",
+                                            weight = itemWeight.trim(),
+                                            value = itemValue.trim(),
                                             category = itemCategory.trim(),
-                                            type = itemType.trim()
+                                            type = itemType.trim(),
+                                            damage = itemDamage.trim().ifBlank { null },
+                                            range = itemRange.trim().ifBlank { null },
+                                            properties = itemProperties.trim().ifBlank { null }
                                         )
                                     }
                                 },
@@ -230,10 +258,13 @@ fun AdminScreen(viewModel: DndViewModel) {
                                             rarity = itemRarity.trim(),
                                             sourcebook = itemSourcebook.trim(),
                                             description = itemDescription.trim(),
-                                            weight = if (itemWeight.isNotBlank()) "${itemWeight.trim()} lb." else "",
-                                            value = if (itemValue.isNotBlank()) "${itemValue.trim()} gp" else "",
+                                            weight = itemWeight.trim(),
+                                            value = itemValue.trim(),
                                             category = itemCategory.trim(),
-                                            type = itemType.trim()
+                                            type = itemType.trim(),
+                                            damage = itemDamage.trim().ifBlank { null },
+                                            range = itemRange.trim().ifBlank { null },
+                                            properties = itemProperties.trim().ifBlank { null }
                                         )
                                     }
                                 },
@@ -294,10 +325,13 @@ fun AdminScreen(viewModel: DndViewModel) {
                     itemRarity = item.rarity
                     itemSourcebook = item.sourcebook
                     itemDescription = item.description
-                    itemWeight = item.weight.replace(" lb.", "")
-                    itemValue = item.value.replace(" gp", "")
+                    itemWeight = item.weight
+                    itemValue = item.value
                     itemCategory = item.category
                     itemType = item.type
+                    itemDamage = item.damage ?: ""
+                    itemRange = item.range ?: ""
+                    itemProperties = item.properties ?: ""
                 })
             }
         }
@@ -370,6 +404,15 @@ fun AdminItemRow(
                     "${item.category}${if (item.category.isNotBlank() && item.type.isNotBlank()) " • " else ""}${item.type}",
                     style = MaterialTheme.typography.labelSmall,
                     color = DnDGold
+                )
+            }
+
+            if (item.damage != null || item.range != null) {
+                Text(
+                    "${item.damage ?: ""} • ${item.range ?: ""}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = DnDLightText,
+                    fontWeight = FontWeight.Bold
                 )
             }
 

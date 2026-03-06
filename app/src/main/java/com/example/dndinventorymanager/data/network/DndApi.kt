@@ -37,6 +37,7 @@ data class EquipmentDetailResponse(
     val category_range: String?,
     val damage: Damage?,
     val range: Range?,
+    val throw_range: Range?,
     val properties: List<Property>?,
     val weight: Double?,
     val cost: Cost?,

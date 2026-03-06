@@ -666,12 +666,25 @@ fun InventoryScreen(
                                         DndDivider()
                                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                             if (itemsInThisContainer.isEmpty()) {
-                                                Text("Container is empty", style = MaterialTheme.typography.bodySmall, color = DnDMutedText)
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text("Container is empty", style = MaterialTheme.typography.bodySmall, color = DnDMutedText)
+                                                    Button(
+                                                        onClick = { viewModel.updateInventoryQuantity(container.id, 0) },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.7f))
+                                                    ) {
+                                                        Text("Delete", color = Color.White, fontSize = 10.sp)
+                                                    }
+                                                }
                                             } else {
                                                 itemsInThisContainer.forEach { itemInContainer ->
                                                     InventoryItemRow(
                                                         item = itemInContainer,
                                                         viewModel = viewModel,
+                                                        inventory = inventory,
                                                         isExpanded = expandedItems.contains("cont_${itemInContainer.id}"),
                                                         onToggleExpand = {
                                                             expandedItems = if (expandedItems.contains("cont_${itemInContainer.id}")) {
@@ -696,6 +709,7 @@ fun InventoryScreen(
                         InventoryItemRow(
                             item = item,
                             viewModel = viewModel,
+                            inventory = inventory,
                             isExpanded = expandedItems.contains("reg_${item.id}"),
                             onToggleExpand = {
                                 expandedItems = if (expandedItems.contains("reg_${item.id}")) {
@@ -768,6 +782,7 @@ fun InventoryScreen(
 fun InventoryItemRow(
     item: InventoryDisplayItem,
     viewModel: DndViewModel,
+    inventory: List<InventoryDisplayItem>,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     modifier: Modifier = Modifier
@@ -778,6 +793,7 @@ fun InventoryItemRow(
     val totalValue = valueVal * item.quantity
 
     var editableNotes by remember(item.id, isExpanded) { mutableStateOf(item.notes) }
+    var containerMenuExpanded by remember { mutableStateOf(false) }
 
     DndCard(modifier = modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1056,6 +1072,47 @@ fun InventoryItemRow(
                                 colors = CheckboxDefaults.colors(checkedColor = DnDGold, uncheckedColor = DnDMutedText)
                             )
                             Text("Equipped", style = MaterialTheme.typography.bodySmall, color = DnDLightText)
+                        }
+                    }
+
+                    // Container Assignment
+                    val availableContainers = inventory.filter { 
+                        (it.notes.contains("🗂 CONTAINER", ignoreCase = true) || it.containerName?.startsWith("🗂") == true) &&
+                        it.id != item.id 
+                    }
+                    if (availableContainers.isNotEmpty()) {
+                        Column {
+                            Text("Assigned to Container:", style = MaterialTheme.typography.labelSmall, color = DnDMutedText, fontWeight = FontWeight.Bold)
+                            Box {
+                                Button(
+                                    onClick = { containerMenuExpanded = true },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = DnDCardBg, contentColor = DnDGold)
+                                ) {
+                                    Text(item.containerName ?: "No Container", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+                                DropdownMenu(
+                                    expanded = containerMenuExpanded,
+                                    onDismissRequest = { containerMenuExpanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("None") },
+                                        onClick = {
+                                            viewModel.updateInventoryContainer(item.id, null)
+                                            containerMenuExpanded = false
+                                        }
+                                    )
+                                    availableContainers.forEach { container ->
+                                        DropdownMenuItem(
+                                            text = { Text(container.name) },
+                                            onClick = {
+                                                viewModel.updateInventoryContainer(item.id, container.name)
+                                                containerMenuExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
