@@ -28,7 +28,4 @@ interface CharacterDao {
 
     @Query("UPDATE characters SET spellSlots = :slots, maxPrepared = :maxPrepared WHERE id = :id")
     suspend fun updateSpellcasting(id: Long, slots: String, maxPrepared: Int)
-    
-    @Query("UPDATE characters SET gold = :gold WHERE id = :id")
-    suspend fun updateGold(id: Long, gold: Int)
 }

@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.dndinventorymanager.data.entities.ItemEntity
 import com.example.dndinventorymanager.ui.DndViewModel
 import com.example.dndinventorymanager.ui.components.DndButton
@@ -30,16 +33,22 @@ import com.example.dndinventorymanager.ui.components.DndCardHeader
 import com.example.dndinventorymanager.ui.components.DndDivider
 import com.example.dndinventorymanager.ui.components.DndTextInput
 import com.example.dndinventorymanager.ui.theme.DnDCardBg
+import com.example.dndinventorymanager.ui.theme.DnDDarkBg
 import com.example.dndinventorymanager.ui.theme.DnDGold
 import com.example.dndinventorymanager.ui.theme.DnDLightText
 import com.example.dndinventorymanager.ui.theme.DnDMutedText
 
 @Composable
-fun AdminScreen(viewModel: DndViewModel) {
+fun AdminScreen(
+    viewModel: DndViewModel,
+    onNavigateSpellsAdmin: () -> Unit
+) {
     val baseItems by viewModel.baseItems.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var showReloadConfirmation by remember { mutableStateOf(false) }
+    var showExtraSyncConfirmation by remember { mutableStateOf(false) }
     
     var itemId by remember { mutableStateOf("") }
     var itemName by remember { mutableStateOf("") }
@@ -69,13 +78,14 @@ fun AdminScreen(viewModel: DndViewModel) {
     if (showDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Delete All Items?", color = DnDGold) },
-            text = { Text("This will permanently remove all base items from the database. You will need to sync again to restore SRD items.", color = DnDLightText) },
+            title = { Text("Are you sure?", color = DnDGold) },
+            text = { Text("This will permanently remove all base items from the database.", color = DnDLightText) },
             containerColor = DnDCardBg,
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteAllBaseItems()
                     showDeleteConfirmation = false
+                    showReloadConfirmation = true
                 }) {
                     Text("DELETE ALL", color = Color.Red, fontWeight = FontWeight.Bold)
                 }
@@ -88,15 +98,83 @@ fun AdminScreen(viewModel: DndViewModel) {
         )
     }
 
+    if (showReloadConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showReloadConfirmation = false },
+            title = { Text("Reload Standard Items?", color = DnDGold) },
+            text = { Text("Do you want to reload all standard items from the API now?", color = DnDLightText) },
+            containerColor = DnDCardBg,
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.performInitialSync(force = true)
+                    showReloadConfirmation = false
+                }) {
+                    Text("YES", color = DnDGold, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReloadConfirmation = false }) {
+                    Text("NO", color = DnDMutedText)
+                }
+            }
+        )
+    }
+
+    if (showExtraSyncConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showExtraSyncConfirmation = false },
+            title = { Text("Add Extra Items?", color = DnDGold) },
+            text = { Text("This will add another 1000+ items, not all have been checked. do you still want to add this?", color = DnDLightText) },
+            containerColor = DnDCardBg,
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.syncExtraItems()
+                    showExtraSyncConfirmation = false
+                }) {
+                    Text("YES", color = DnDGold, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExtraSyncConfirmation = false }) {
+                    Text("CANCEL", color = DnDMutedText)
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Tab Navigation
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { /* Already on Items */ },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = DnDGold,
+                    contentColor = DnDDarkBg
+                )
+            ) {
+                Text("Items", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+            Button(
+                onClick = onNavigateSpellsAdmin,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = DnDDarkBg,
+                    contentColor = DnDGold
+                )
+            ) {
+                Text("Spells", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+        }
+
         // Header
         Text(
-            "⚙ Admin Panel",
+            "⚙ Admin: Items",
             style = MaterialTheme.typography.headlineSmall,
             color = DnDGold,
             fontWeight = FontWeight.Bold
@@ -227,32 +305,10 @@ fun AdminScreen(viewModel: DndViewModel) {
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             DndButton(
-                                text = "➕ Add",
+                                text = "➕ Add/Update",
                                 onClick = {
                                     if (itemId.isNotBlank() && itemName.isNotBlank()) {
                                         viewModel.createBaseItem(
-                                            id = itemId.trim(),
-                                            name = itemName.trim(),
-                                            rarity = itemRarity.trim(),
-                                            sourcebook = itemSourcebook.trim(),
-                                            description = itemDescription.trim(),
-                                            weight = itemWeight.trim(),
-                                            value = itemValue.trim(),
-                                            category = itemCategory.trim(),
-                                            type = itemType.trim(),
-                                            damage = itemDamage.trim().ifBlank { null },
-                                            range = itemRange.trim().ifBlank { null },
-                                            properties = itemProperties.trim().ifBlank { null }
-                                        )
-                                    }
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            DndButton(
-                                text = "✏ Update",
-                                onClick = {
-                                    if (itemId.isNotBlank() && itemName.isNotBlank()) {
-                                        viewModel.updateBaseItem(
                                             id = itemId.trim(),
                                             name = itemName.trim(),
                                             rarity = itemRarity.trim(),
@@ -288,8 +344,8 @@ fun AdminScreen(viewModel: DndViewModel) {
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DndButton(
-                        text = "🔄 Sync SRD Items",
-                        onClick = { viewModel.syncSrdItems() },
+                        text = "🔄 Extra Items",
+                        onClick = { showExtraSyncConfirmation = true },
                         modifier = Modifier.weight(1f)
                     )
                     DndButton(

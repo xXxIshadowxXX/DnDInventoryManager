@@ -12,8 +12,17 @@ interface ItemDao {
     @Query("SELECT * FROM items ORDER BY name")
     fun getItems(): Flow<List<ItemEntity>>
 
+    @Query("SELECT name FROM items")
+    suspend fun getAllNames(): List<String>
+
+    @Query("SELECT id FROM items")
+    suspend fun getAllIds(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ItemEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAllIgnore(items: List<ItemEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: ItemEntity)

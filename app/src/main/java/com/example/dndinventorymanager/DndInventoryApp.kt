@@ -19,8 +19,11 @@ class DndInventoryApp : Application() {
             itemDao = database.itemDao(),
             customItemDao = database.customItemDao(),
             inventoryDao = database.inventoryDao(),
+            spellDao = database.spellDao(),
+            userSpellDao = database.userSpellDao(),
             settingsDataStore = settingsDataStore,
-            api = DndApiClient.api
+            api = DndApiClient.api,
+            context = this
         )
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -37,6 +38,10 @@ fun AppRoot(modifier: Modifier = Modifier) {
     val app = context.applicationContext as DndInventoryApp
     val viewModel: DndViewModel = viewModel(factory = DndViewModelFactory(app.repository))
     val navController = rememberNavController()
+
+    LaunchedEffect(Unit) {
+        viewModel.performInitialSync()
+    }
 
     MainNavHost(navController = navController, viewModel = viewModel, modifier = modifier)
 }

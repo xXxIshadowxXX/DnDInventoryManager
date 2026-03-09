@@ -25,4 +25,12 @@ object DndApiClient {
         .build()
 
     val api: DndApi = retrofit.create(DndApi::class.java)
+
+    private val open5eRetrofit = Retrofit.Builder()
+        .baseUrl("https://api.open5e.com/")
+        .client(okHttpClient)
+        .addConverterFactory(MoshiConverterFactory.create(moshi))
+        .build()
+
+    val open5eApi: Open5eApi = open5eRetrofit.create(Open5eApi::class.java)
 }

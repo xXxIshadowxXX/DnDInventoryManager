@@ -8,19 +8,25 @@ import com.example.dndinventorymanager.data.dao.CharacterDao
 import com.example.dndinventorymanager.data.dao.CustomItemDao
 import com.example.dndinventorymanager.data.dao.InventoryDao
 import com.example.dndinventorymanager.data.dao.ItemDao
+import com.example.dndinventorymanager.data.dao.SpellDao
+import com.example.dndinventorymanager.data.dao.UserSpellDao
 import com.example.dndinventorymanager.data.entities.CharacterEntity
 import com.example.dndinventorymanager.data.entities.CustomItemEntity
 import com.example.dndinventorymanager.data.entities.InventoryItemEntity
 import com.example.dndinventorymanager.data.entities.ItemEntity
+import com.example.dndinventorymanager.data.entities.SpellEntity
+import com.example.dndinventorymanager.data.entities.UserSpellEntity
 
 @Database(
     entities = [
         CharacterEntity::class,
         ItemEntity::class,
         CustomItemEntity::class,
-        InventoryItemEntity::class
+        InventoryItemEntity::class,
+        SpellEntity::class,
+        UserSpellEntity::class
     ],
-    version = 3,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,6 +34,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun itemDao(): ItemDao
     abstract fun customItemDao(): CustomItemDao
     abstract fun inventoryDao(): InventoryDao
+    abstract fun spellDao(): SpellDao
+    abstract fun userSpellDao(): UserSpellDao
 
     companion object {
         @Volatile

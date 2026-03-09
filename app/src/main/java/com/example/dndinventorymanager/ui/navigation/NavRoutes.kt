@@ -1,8 +1,9 @@
 package com.example.dndinventorymanager.ui.navigation
 
-object NavRoutes {
-    const val HOME = "home"
-    const val CHARACTERS = "characters"
-    const val INVENTORY = "inventory"
-    const val ADMIN = "admin"
+sealed class NavRoutes(val route: String) {
+    object Home : NavRoutes("home")
+    object Characters : NavRoutes("characters")
+    object Inventory : NavRoutes("inventory")
+    object Spells : NavRoutes("spells")
+    object Admin : NavRoutes("admin")
 }

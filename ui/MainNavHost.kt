@@ -1,12 +1,10 @@
 package com.example.dndinventorymanager.ui
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -14,20 +12,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.dndinventorymanager.ui.navigation.NavRoutes
-import com.example.dndinventorymanager.ui.screens.AdminScreen
-import com.example.dndinventorymanager.ui.screens.AdminSpellsScreen
-import com.example.dndinventorymanager.ui.screens.CharactersScreen
-import com.example.dndinventorymanager.ui.screens.HomeScreen
-import com.example.dndinventorymanager.ui.screens.InventoryScreen
-import com.example.dndinventorymanager.ui.screens.SpellsScreen
+import com.example.dndinventorymanager.ui.screens.*
 import com.example.dndinventorymanager.ui.theme.DnDGold
 import com.example.dndinventorymanager.ui.theme.DnDLightText
 
@@ -37,47 +27,31 @@ fun MainNavHost(
     viewModel: DndViewModel,
     modifier: Modifier = Modifier
 ) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
-    // Global back handler: If not on Home, go to Home
-    if (currentRoute != null && currentRoute != NavRoutes.Home.route) {
-        BackHandler {
-            navController.navigate(NavRoutes.Home.route) {
-                popUpTo(NavRoutes.Home.route) { inclusive = true }
-            }
-        }
-    }
+    val syncStatus by viewModel.syncStatus.collectAsState()
 
     Box(modifier = modifier) {
         NavHost(
             navController = navController,
-            startDestination = NavRoutes.Home.route
+            startDestination = "home"
         ) {
-            composable(NavRoutes.Home.route) {
+            composable("home") {
                 HomeScreen(
-                    onNavigateInventory = { navController.navigate(NavRoutes.Inventory.route) },
-                    onNavigateSpells = { navController.navigate(NavRoutes.Spells.route) },
-                    onNavigateCharacters = { navController.navigate(NavRoutes.Characters.route) },
-                    onNavigateAdmin = { navController.navigate(NavRoutes.Admin.route) }
+                    onNavigateCharacters = { navController.navigate("characters") },
+                    onNavigateInventory = { navController.navigate("inventory") },
+                    onNavigateSpells = { navController.navigate("spells") },
+                    onNavigateAdmin = { navController.navigate("admin") }
                 )
             }
-            composable(NavRoutes.Characters.route) {
+            composable("characters") {
                 CharactersScreen(viewModel = viewModel)
             }
-            composable(NavRoutes.Inventory.route) {
-                InventoryScreen(
-                    viewModel = viewModel,
-                    onNavigateCharacters = { navController.navigate(NavRoutes.Characters.route) }
-                )
+            composable("inventory") {
+                InventoryScreen(viewModel = viewModel)
             }
-            composable(NavRoutes.Spells.route) {
-                SpellsScreen(
-                    viewModel = viewModel,
-                    onNavigateCharacters = { navController.navigate(NavRoutes.Characters.route) }
-                )
+            composable("spells") {
+                SpellsScreen(viewModel = viewModel)
             }
-            composable(NavRoutes.Admin.route) {
+            composable("admin") {
                 AdminScreen(
                     viewModel = viewModel,
                     onNavigateSpellsAdmin = { navController.navigate("admin_spells") }
@@ -86,20 +60,14 @@ fun MainNavHost(
             composable("admin_spells") {
                 AdminSpellsScreen(
                     viewModel = viewModel,
-                    onNavigateItemsAdmin = { navController.navigate(NavRoutes.Admin.route) }
+                    onNavigateItemsAdmin = { navController.navigate("admin") }
                 )
             }
         }
 
-        SyncOverlayWrapper(viewModel)
-    }
-}
-
-@Composable
-fun SyncOverlayWrapper(viewModel: DndViewModel) {
-    val syncStatus by viewModel.syncStatus.collectAsState()
-    if (syncStatus.isSyncing) {
-        SyncOverlay(syncStatus.message, syncStatus.progress, syncStatus.total)
+        if (syncStatus.isSyncing) {
+            SyncOverlay(syncStatus.message, syncStatus.progress, syncStatus.total)
+        }
     }
 }
 
@@ -117,7 +85,7 @@ fun SyncOverlay(message: String, progress: Int, total: Int) {
             ),
             elevation = androidx.compose.material3.CardDefaults.cardElevation(8.dp)
         ) {
-            Column(
+            androidx.compose.foundation.layout.Column(
                 modifier = Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -125,7 +93,7 @@ fun SyncOverlay(message: String, progress: Int, total: Int) {
                 Text(message, color = DnDGold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 if (total > 0) {
                     LinearProgressIndicator(
-                        progress = { progress.toFloat() / total.toFloat() },
+                        progress = progress.toFloat() / total.toFloat(),
                         modifier = Modifier.fillMaxWidth(),
                         color = DnDGold,
                         trackColor = Color.Gray
